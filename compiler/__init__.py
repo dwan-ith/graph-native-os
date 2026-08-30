@@ -1,0 +1,3 @@
+"""
+Compiler package initialization.
+"""

@@ -1,0 +1,42 @@
+name: tiny-os CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install toolchain (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y gcc cmake
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Lint
+        run: |
+          pip install ruff
+          ruff check compiler tests --select E,F,W
+
+      - name: Unit + e2e + fuzz suite
+        env:
+          TINYOS_FUZZ_SEEDS: "24"
+        run: python -m pytest tests -q
+
+      - name: CMake build
+        run: |
+          cmake -B build -S .
+          cmake --build build
